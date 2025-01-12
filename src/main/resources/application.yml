@@ -1,0 +1,70 @@
+app:
+  token:
+    secret: secretKeyRahatAliCognizantSecretKeyForAuthServices808756
+server:
+  port: 8086 # API Gateway port
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true # For case-insensitive service names
+      routes:
+        - id: auth-service
+          uri: lb://AUTHSERVICE
+          predicates:
+            - Path=/auth-service/**
+          filters:
+            - RewritePath=/auth-service/(?<segment>.*), /${segment}
+      # Actuator Routes for Auth Service
+        - id: auth-service-actuator
+          uri: lb://AUTHSERVICE
+          predicates:
+            - Path=/auth-service/actuator/**
+          filters:
+            - RewritePath=/auth-service/actuator/(?<segment>.*), /actuator/${segment}
+
+        - id: bookmark-service
+          uri: lb://BOOKMARKSERVICE
+          predicates:
+            - Path=/bookmark/**
+       # Actuator Routes for Auth Service
+        - id: bookmark-service-actuator
+          uri: lb://AUTHSERVICE
+          predicates:
+            - Path=/bookmark-service/actuator/**
+          filters:
+            - RewritePath=/bookmark-service/actuator/(?<segment>.*), /actuator/${segment}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka : true
+    fetch-registry : true
+  instance:
+    prefer-ip-address: true
+
+  logging:
+      level:
+        org:
+          springframework:
+            cloud:
+              openfeign: DEBUG
+      feign: DEBUG
+
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 10000
+
+
+
+
+
