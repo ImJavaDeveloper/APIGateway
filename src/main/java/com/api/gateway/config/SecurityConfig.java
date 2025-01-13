@@ -15,9 +15,6 @@ public class SecurityConfig {
 
         return httpSecurity
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .authorizeExchange(exchange->exchange
-                        .pathMatchers("/auth-service/api/v1/login","/auth-service/**").permitAll()
-                )
                 .build();
     }
 }

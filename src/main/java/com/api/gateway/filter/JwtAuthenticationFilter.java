@@ -35,14 +35,25 @@ public class JwtAuthenticationFilter implements WebFilter {
         String authHeader=exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         log.info(exchange.getRequest().getPath().value());
         if(GatewayConstant.allowedPath.contains(exchange.getRequest().getPath().value())
-        || exchange.getRequest().getPath().value().startsWith("/auth-service/actuator/"))
+        || exchange.getRequest().getPath().value().contains("/actuator/"))
         {
             return chain.filter(exchange);
         }
         if(authHeader == null || !authHeader.startsWith("Bearer"))
         {
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
+            exchange.getResponse()
+                    .setStatusCode(HttpStatus.UNAUTHORIZED);
+            String errorResponse = """
+                        {
+                          "error": "Invalid Token !!",
+                          "message": "Bearer Token Is Missing"
+                        }
+                        """;
+            return exchange.getResponse()
+                    .writeWith(Mono.just(exchange.getResponse()
+                            .bufferFactory()
+                            .wrap(errorResponse.getBytes())));
+
         }
         try{
             TokenResponse tokenResponse=authServiceClient.validateToken(authHeader);
@@ -58,13 +69,7 @@ public class JwtAuthenticationFilter implements WebFilter {
             log.error("Error While Validating JWT Token");
             exchange.getResponse()
                     .setStatusCode(HttpStatus.UNAUTHORIZED);
-            String errorResponse = """
-                        {
-                          "error": "Error Occurred",
-                          "message": "Failed to connect",
-                          "details": "%s"
-                        }
-                        """.formatted(e.getMessage());
+            String errorResponse=GatewayConstant.errorResponse.formatted(e.getMessage());
             return exchange.getResponse()
                     .writeWith(Mono.just(exchange.getResponse()
                             .bufferFactory()
