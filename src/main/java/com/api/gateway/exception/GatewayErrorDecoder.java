@@ -18,7 +18,7 @@ public class GatewayErrorDecoder implements ErrorDecoder {
             case 404:
                 return new ResourceNotFoundException("Resource not found");
             case 401:
-                return new UnAuthorizedException("Not Authorized...");
+                return new UnAuthorizedException("User or JWT Is not Authenticated");
             case 500:
                 return new DownstreamServiceException("Internal server error in downstream service");
             default:

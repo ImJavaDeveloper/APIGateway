@@ -15,26 +15,26 @@ spring:
           lower-case-service-id: true # For case-insensitive service names
       routes:
         - id: auth-service
-          uri: lb://AUTHSERVICE
+          uri: lb://AUTH-SERVICE
           predicates:
             - Path=/auth-service/**
           filters:
             - RewritePath=/auth-service/(?<segment>.*), /${segment}
       # Actuator Routes for Auth Service
         - id: auth-service-actuator
-          uri: lb://AUTHSERVICE
+          uri: lb://AUTH-SERVICE
           predicates:
             - Path=/auth-service/actuator/**
           filters:
             - RewritePath=/auth-service/actuator/(?<segment>.*), /actuator/${segment}
 
         - id: bookmark-service
-          uri: lb://BOOKMARKSERVICE
+          uri: lb://BOOKMARK-SERVICE
           predicates:
             - Path=/bookmark/**
        # Actuator Routes for Auth Service
         - id: bookmark-service-actuator
-          uri: lb://AUTHSERVICE
+          uri: lb://BOOKMARK-SERVICE
           predicates:
             - Path=/bookmark-service/actuator/**
           filters:

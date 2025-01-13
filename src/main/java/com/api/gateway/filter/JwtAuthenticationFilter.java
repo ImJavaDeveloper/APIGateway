@@ -45,16 +45,7 @@ public class JwtAuthenticationFilter implements WebFilter {
             return exchange.getResponse().setComplete();
         }
         try{
-            String token=authHeader.substring(7);
-            TokenResponse tokenResponse;
-            try {
-                 tokenResponse= authServiceClient.validateToken(authHeader);
-            } catch (FeignException.NotFound ex) {
-                log.info("FeignException Occured...");
-                throw new UnAuthorizedException("Resource not found during Feign call");
-            } catch (FeignException ex) {
-                throw new Exception("Error occurred during Feign call");
-            }
+            TokenResponse tokenResponse=authServiceClient.validateToken(authHeader);
             if(tokenResponse.isAuthenticated() && tokenResponse.getUsername() != null) {
                 exchange.getRequest().mutate().header("REMOTE_USER", tokenResponse.getUsername());
             }
@@ -64,13 +55,21 @@ public class JwtAuthenticationFilter implements WebFilter {
             }
         }catch (Exception e)
         {
-            log.error("Error While Validating Token:{}",e);
+            log.error("Error While Validating JWT Token");
             exchange.getResponse()
-                    .setStatusCode(HttpStatus.NOT_FOUND)
+                    .setStatusCode(HttpStatus.UNAUTHORIZED);
+            String errorResponse = """
+                        {
+                          "error": "Error Occurred",
+                          "message": "Failed to connect",
+                          "details": "%s"
+                        }
+                        """.formatted(e.getMessage());
+            return exchange.getResponse()
+                    .writeWith(Mono.just(exchange.getResponse()
+                            .bufferFactory()
+                            .wrap(errorResponse.getBytes())));
 
-            ;
-            throw new UnAuthorizedException("Resource not found during Feign call");
-           // return exchange.getResponse().setComplete();
         }
         return chain.filter(exchange);
     }
