@@ -32,13 +32,18 @@ public class JwtAuthenticationFilter implements WebFilter {
     AuthServiceClient authServiceClient;
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        String authHeader=exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+
         log.info(exchange.getRequest().getPath().value());
+        log.info("Whitelisted URLS:{}",GatewayConstant.allowedPath);
         if(GatewayConstant.allowedPath.contains(exchange.getRequest().getPath().value())
-        || exchange.getRequest().getPath().value().contains("/actuator/"))
+                || exchange.getRequest().getPath().value().contains("/actuator/"))
         {
+            log.info("Whitelisted URLS:{}",GatewayConstant.allowedPath);
             return chain.filter(exchange);
         }
+
+        String authHeader=exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+
         if(authHeader == null || !authHeader.startsWith("Bearer"))
         {
             exchange.getResponse()
@@ -57,13 +62,16 @@ public class JwtAuthenticationFilter implements WebFilter {
         }
         try{
             TokenResponse tokenResponse=authServiceClient.validateToken(authHeader);
-            if(tokenResponse.isAuthenticated() && tokenResponse.getUsername() != null) {
-                exchange.getRequest().mutate().header("REMOTE_USER", tokenResponse.getUsername());
+            log.info("Token Response:{}",tokenResponse.toString());
+            if(!tokenResponse.isAuthenticated())
+            {
+                throw new RuntimeException("UnAuthorized !!");
             }
-            else {
-                exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.UNAUTHORIZED);
-                return exchange.getResponse().setComplete();
+            if(tokenResponse.getUsername() != null) {
+                ServerWebExchange exchange1= exchange.mutate().request(request->request.header("REMOTE_USER",tokenResponse.getUsername())).build();
+                return chain.filter(exchange1);
             }
+
         }catch (Exception e)
         {
             log.error("Error While Validating JWT Token");

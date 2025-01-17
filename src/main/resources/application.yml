@@ -13,7 +13,14 @@ spring:
         locator:
           enabled: true
           lower-case-service-id: true # For case-insensitive service names
+      default-filters:
+        -name: RewriteResponseStatus
+        args:
+          OriginalStatusCoderHeaderName: X-Original-State
+
+
       routes:
+        # Routes For Auth Service
         - id: auth-service
           uri: lb://AUTH-SERVICE
           predicates:
@@ -27,19 +34,27 @@ spring:
             - Path=/auth-service/actuator/**
           filters:
             - RewritePath=/auth-service/actuator/(?<segment>.*), /actuator/${segment}
-
+      #Routes For Bookmark Service
         - id: bookmark-service
           uri: lb://BOOKMARK-SERVICE
           predicates:
-            - Path=/bookmark/**
-       # Actuator Routes for Auth Service
+            - Path=/bookmark-service/**
+          filters:
+            - RewritePath=/bookmark-service/(?<segment>.*), /${segment}
+       # Actuator Routes for Bookmark Service
         - id: bookmark-service-actuator
           uri: lb://BOOKMARK-SERVICE
           predicates:
             - Path=/bookmark-service/actuator/**
           filters:
             - RewritePath=/bookmark-service/actuator/(?<segment>.*), /actuator/${segment}
-
+       #Routes for User Profile Service
+        - id: user-service
+          uri: lb://USERPROFILE-SERVICE
+          predicates:
+            - Path=/user-service/**
+          filters:
+            - RewritePath=/user-service/(?<segment>.*), /${segment}
 eureka:
   client:
     service-url:

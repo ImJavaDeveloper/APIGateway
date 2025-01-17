@@ -5,7 +5,10 @@ import java.util.Set;
 
 public class GatewayConstant {
 
-    public static final Set<String> allowedPath= Set.of("/auth-service/api/v1/login","/auth-service/actuator/");
+    public static final Set<String> allowedPath= Set.of(
+            "/auth-service/api/v1/login",
+            "/auth-service/api/v1/validate",
+            "/user-service/api/v1/register");
     public static String errorResponse = """
                         {
                           "error": "Error Occurred",
