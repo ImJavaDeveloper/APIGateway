@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-@FeignClient(name = "AUTH-SERVICE", url = "http://localhost:8081",configuration = FeignConfig.class)
+@FeignClient(name = "auth-service", url = "http://auth-service:8081",configuration = FeignConfig.class)
 public interface AuthServiceClient {
 
     @GetMapping("/api/v1/validate")
