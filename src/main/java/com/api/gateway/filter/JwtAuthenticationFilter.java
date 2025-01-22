@@ -5,6 +5,7 @@ import com.api.gateway.exception.DownstreamServiceException;
 import com.api.gateway.exception.UnAuthorizedException;
 import com.api.gateway.feign.AuthServiceClient;
 import com.api.gateway.feign.TokenResponse;
+import com.api.gateway.utils.JWTUtils;
 import feign.FeignException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -30,15 +31,25 @@ public class JwtAuthenticationFilter implements WebFilter {
     private String jwtSecretKey;
     @Autowired
     AuthServiceClient authServiceClient;
+    @Autowired
+    JWTUtils jwtUtils;
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
 
         log.info(exchange.getRequest().getPath().value());
+        log.info(exchange.getRequest().getMethod().toString());
+        if ("OPTIONS".equalsIgnoreCase(exchange.getRequest().getMethod().toString())) {
+            exchange.getResponse().setStatusCode(HttpStatus.OK);
+            return Mono.empty();
+        }
+
         log.info("Whitelisted URLS:{}",GatewayConstant.allowedPath);
         if(GatewayConstant.allowedPath.contains(exchange.getRequest().getPath().value())
-                || exchange.getRequest().getPath().value().contains("/actuator/"))
-        {
-            log.info("Whitelisted URLS:{}",GatewayConstant.allowedPath);
+                || exchange.getRequest().getPath().value().contains("/actuator/")
+                || exchange.getRequest().getPath().value().contains("swagger")
+                || exchange.getRequest().getPath().value().contains("/v3/api-docs"))
+        {log.info("Whitelisted URLS:{}",GatewayConstant.allowedPath);
             return chain.filter(exchange);
         }
 
@@ -61,16 +72,18 @@ public class JwtAuthenticationFilter implements WebFilter {
 
         }
         try{
-            TokenResponse tokenResponse=authServiceClient.validateToken(authHeader);
-            log.info("Token Response:{}",tokenResponse.toString());
-            if(!tokenResponse.isAuthenticated())
+           //TokenResponse tokenResponse=authServiceClient.validateToken(authHeader);
+            String token=authHeader.substring(7);
+           // String token=jwtUtils.parseJwt(authHeader);
+            boolean isValid=jwtUtils.validateJwtToken(token);
+            log.info("Token Response:{}", token);
+            if(!isValid)
             {
                 throw new RuntimeException("UnAuthorized !!");
             }
-            if(tokenResponse.getUsername() != null) {
-                ServerWebExchange exchange1= exchange.mutate().request(request->request.header("REMOTE_USER",tokenResponse.getUsername())).build();
-                return chain.filter(exchange1);
-            }
+            Claims claims=Jwts.parser().setSigningKey(GatewayConstant.JWTSECRET).parseClaimsJws(token).getBody();
+            ServerWebExchange exchange1= exchange.mutate().request(request->request.header("REMOTE_USER",claims.getSubject())).build();
+            return chain.filter(exchange1);
 
         }catch (Exception e)
         {
@@ -84,6 +97,6 @@ public class JwtAuthenticationFilter implements WebFilter {
                             .wrap(errorResponse.getBytes())));
 
         }
-        return chain.filter(exchange);
+        ///return chain.filter(exchange);
     }
 }
